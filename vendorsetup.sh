@@ -14,4 +14,4 @@
 # limitations under the License.
 #
 
-add_lunch_combo omni_B85-user
+add_lunch_combo omni_B85-D-userdebug
