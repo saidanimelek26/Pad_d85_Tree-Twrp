@@ -1,0 +1,24 @@
+#
+# system.prop for B85-D
+#
+ro.secure=0
+ro.allow.mock.location=0
+ro.debuggable=1
+persist.sys.usb.config=mass_storage,adb
+persist.service.acm.enable=0
+ro.mount.fs=EXT4
+ro.build.id=KTU84P
+ro.product.model=Haier B85-D
+ro.product.brand=Haier
+ro.product.name=B85-D
+ro.product.device=B85-D
+ro.product.board=B85-D
+ro.product.manufacturer=Haier
+ro.product.cpu.abi=armeabi-v7a
+ro.product.cpu.abi2=armeabi
+ro.board.platform=MT6589
+ro.build.product=B85-D
+#usb.vendor=17EF
+#usb.product.adb=74ED
+#usb.product.mtpadb=7718
+
