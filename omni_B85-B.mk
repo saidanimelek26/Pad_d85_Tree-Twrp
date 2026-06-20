@@ -17,14 +17,14 @@
 # Embedded
 $(call inherit-product, build/target/product/embedded.mk)
 
-# Inherit device configuration
+# Inherit device configuration with correct path
 $(call inherit-product, device/Haier/B85-B/device.mk)
 
 # Inherit from our custom product configuration
 $(call inherit-product, vendor/omni/config/common.mk)
 
-PRODUCT_DEVICE := Haier
+PRODUCT_DEVICE := B85-B
 PRODUCT_NAME := omni_B85-B
-PRODUCT_BRAND := B85
+PRODUCT_BRAND := Haier
 PRODUCT_MODEL := B85
 PRODUCT_MANUFACTURER := Haier
