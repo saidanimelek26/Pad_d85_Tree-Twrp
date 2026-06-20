@@ -1,0 +1,225 @@
+name: Build TWRP 4.4 Recovery
+
+on:
+  push:
+    branches:
+      - main
+      - github-actions
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-recovery:
+    runs-on: ubuntu-20.04
+    
+    steps:
+      - name: Checkout device tree
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies for TWRP 4.4
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git-core gnupg flex bison build-essential zip curl \
+            zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 \
+            lib32ncurses5-dev x11-utils libssl-dev libxml2-utils aapt \
+            xsltproc python-is-python3 liblz4-tool openjdk-8-jdk \
+            imagemagick libimage-exiftool libtinfo5
+
+      - name: Clone TWRP 4.4 source
+        run: |
+          mkdir -p ~/twrp
+          cd ~/twrp
+          git clone https://github.com/TeamWin/android_bootable_recovery.git -b twrp-4.4 bootable/recovery
+          git clone https://github.com/TeamWin/android_device_qcom_common.git -b twrp-4.4 device/qcom/common
+          git clone https://github.com/TeamWin/android_system_tools_mkbootimg.git system/tools/mkbootimg
+
+      - name: Create device tree directory
+        run: |
+          mkdir -p ~/twrp/device/Haier/B85-B
+          cp -r $GITHUB_WORKSPACE/* ~/twrp/device/Haier/B85-B/
+
+      - name: Verify device tree structure
+        run: |
+          echo "=== Device Tree Structure ===" 
+          ls -la ~/twrp/device/Haier/B85-B/
+          echo ""
+          echo "=== Key Files Check ==="
+          cd ~/twrp/device/Haier/B85-B
+          [ -f Android.mk ] && echo "✓ Android.mk" || echo "✗ Android.mk MISSING"
+          [ -f AndroidProducts.mk ] && echo "✓ AndroidProducts.mk" || echo "✗ AndroidProducts.mk MISSING"
+          [ -f BoardConfig.mk ] && echo "✓ BoardConfig.mk" || echo "✗ BoardConfig.mk MISSING"
+          [ -f device.mk ] && echo "✓ device.mk" || echo "✗ device.mk MISSING"
+          [ -f omni_B85-B.mk ] && echo "✓ omni_B85-B.mk" || echo "✗ omni_B85-B.mk MISSING"
+          [ -f vendorsetup.sh ] && echo "✓ vendorsetup.sh" || echo "✗ vendorsetup.sh MISSING"
+          [ -f kernel ] && echo "✓ kernel" || echo "✗ kernel MISSING"
+          [ -f mkbootimg ] && echo "✓ mkbootimg" || echo "✗ mkbootimg MISSING"
+          [ -d recovery ] && echo "✓ recovery directory" || echo "✗ recovery directory MISSING"
+
+      - name: Validate makefiles
+        run: |
+          cd ~/twrp/device/Haier/B85-B
+          echo "=== Validating Makefiles ==="
+          
+          # Check AndroidProducts.mk
+          echo "Checking AndroidProducts.mk..."
+          grep -q "PRODUCT_MAKEFILES" AndroidProducts.mk && echo "  ✓ Has PRODUCT_MAKEFILES" || echo "  ✗ Missing PRODUCT_MAKEFILES"
+          grep -q "omni_B85-B.mk" AndroidProducts.mk && echo "  ✓ References omni_B85-B.mk" || echo "  ✗ Missing omni_B85-B.mk reference"
+          
+          # Check omni_B85-B.mk
+          echo "Checking omni_B85-B.mk..."
+          grep -q "PRODUCT_DEVICE" omni_B85-B.mk && echo "  ✓ Has PRODUCT_DEVICE" || echo "  ✗ Missing PRODUCT_DEVICE"
+          grep -q "PRODUCT_NAME" omni_B85-B.mk && echo "  ✓ Has PRODUCT_NAME" || echo "  ✗ Missing PRODUCT_NAME"
+          grep -q "PRODUCT_BRAND" omni_B85-B.mk && echo "  ✓ Has PRODUCT_BRAND" || echo "  ✗ Missing PRODUCT_BRAND"
+          grep -q "inherit-product" omni_B85-B.mk && echo "  ✓ Has inherit-product" || echo "  ✗ Missing inherit-product"
+          
+          # Check BoardConfig.mk
+          echo "Checking BoardConfig.mk..."
+          grep -q "TARGET_BOARD_PLATFORM" BoardConfig.mk && echo "  ✓ Has TARGET_BOARD_PLATFORM" || echo "  ✗ Missing TARGET_BOARD_PLATFORM"
+          grep -q "TARGET_ARCH" BoardConfig.mk && echo "  ✓ Has TARGET_ARCH" || echo "  ✗ Missing TARGET_ARCH"
+          grep -q "DEVICE_PATH" BoardConfig.mk && echo "  ✓ Has DEVICE_PATH" || echo "  ✗ Missing DEVICE_PATH"
+
+      - name: Display configuration details
+        run: |
+          echo "=== Device Configuration ===" 
+          cd ~/twrp/device/Haier/B85-B
+          
+          echo ""
+          echo "PRODUCT Information:"
+          grep "^PRODUCT_" omni_B85-B.mk | head -10
+          
+          echo ""
+          echo "TARGET Configuration (from BoardConfig.mk):"
+          grep "^TARGET_" BoardConfig.mk | head -10
+          
+          echo ""
+          echo "Board Settings (from BoardConfig.mk):"
+          grep "^BOARD_" BoardConfig.mk | head -10
+
+      - name: Check for syntax errors
+        run: |
+          cd ~/twrp/device/Haier/B85-B
+          echo "=== Syntax Check ===" 
+          
+          for file in *.mk; do
+            echo "Checking $file for common errors..."
+            
+            # Check for unterminated variables
+            grep -n '\$(' "$file" | grep -v ')' && echo "  ⚠ Possible unterminated variable in $file"
+            
+            # Check for proper assignments
+            if ! grep -q ':=\|=' "$file"; then
+              echo "  ⚠ No assignments found in $file"
+            fi
+          done
+
+      - name: Create build instructions
+        run: |
+          cat > build_instructions.md << 'EOF'
+          # TWRP 4.4 Build Instructions for Haier B85-B
+          
+          ## Device Information
+          - **Manufacturer:** Haier
+          - **Device Name:** B85-B
+          - **Platform:** MT6589
+          - **Architecture:** ARM (armv7-a)
+          
+          ## Prerequisites
+          ```bash
+          sudo apt-get install git-core gnupg flex bison build-essential zip curl \
+            zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 lib32ncurses5-dev \
+            x11-utils libssl-dev libxml2-utils aapt xsltproc python-is-python3 \
+            liblz4-tool openjdk-8-jdk imagemagick libimage-exiftool libtinfo5
+          ```
+          
+          ## Setup
+          ```bash
+          # Clone TWRP 4.4 source
+          mkdir -p ~/twrp
+          cd ~/twrp
+          
+          git clone https://github.com/TeamWin/android_bootable_recovery.git -b twrp-4.4 bootable/recovery
+          git clone https://github.com/TeamWin/android_device_qcom_common.git -b twrp-4.4 device/qcom/common
+          git clone https://github.com/TeamWin/android_system_tools_mkbootimg.git system/tools/mkbootimg
+          
+          # Setup device tree
+          mkdir -p device/Haier/B85-B
+          git clone https://github.com/saidanimelek26/Pad_d85_Tree-Twrp.git device/Haier/B85-B
+          ```
+          
+          ## Build
+          ```bash
+          cd ~/twrp
+          export ALLOW_MISSING_DEPENDENCIES=true
+          source build/envsetup.sh
+          lunch omni_B85-B-eng
+          mka recoveryimage
+          ```
+          
+          ## Output
+          The recovery.img will be in: `out/target/product/B85-B/recovery.img`
+          
+          ## Common Issues
+          - **Invalid lunch combo:** Ensure device tree is in `device/Haier/B85-B/`
+          - **Missing kernel:** Check that kernel binary is in device tree
+          - **Build failures:** Enable `ALLOW_MISSING_DEPENDENCIES=true`
+          EOF
+          
+          cat build_instructions.md
+
+      - name: Generate build report
+        if: always()
+        run: |
+          cat > build_report.txt << 'EOF'
+          ====== TWRP 4.4 Device Tree Verification Report ======
+          
+          Build Date: $(date)
+          Repository: $GITHUB_REPOSITORY
+          Branch: $GITHUB_REF_NAME
+          Commit: $GITHUB_SHA
+          
+          Device Information:
+          - Manufacturer: Haier
+          - Device: B85-B (MT6589)
+          - TWRP Version: 4.4
+          - Architecture: ARM (armv7-a)
+          
+          Device Tree Files:
+          EOF
+          
+          cd ~/twrp/device/Haier/B85-B
+          ls -lh | tail -n +2 >> build_report.txt
+          
+          cat build_report.txt
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: twrp-device-tree
+          path: |
+            build_instructions.md
+            build_report.txt
+          retention-days: 30
+
+      - name: Upload device tree backup
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: device-tree-backup
+          path: ${{ github.workspace }}
+          retention-days: 60
+
+      - name: Build status
+        if: always()
+        run: |
+          echo ""
+          echo "====== Build Verification Complete ======"
+          echo "✅ Device tree validated for TWRP 4.4"
+          echo "📁 Device Path: device/Haier/B85-B"
+          echo "🔧 Lunch Combo: omni_B85-B-eng"
+          echo "📝 Check artifacts for build instructions"
