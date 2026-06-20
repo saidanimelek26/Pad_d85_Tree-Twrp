@@ -29,7 +29,7 @@ TARGET_POWERHAL_VARIANT := cm
 TARGET_NO_BOOTLOADER := false
 
 # EGL settings
-BOARD_EGL_CFG := device/Haier/B85-D/egl.cfg
+BOARD_EGL_CFG := device/Haier/B85-B/egl.cfg
 USE_OPENGL_RENDERER := true
 BOARD_EGL_WORKAROUND_BUG_10194508 := true
 
@@ -75,7 +75,7 @@ TW_USE_BRAND_DEVICE_HARDWARE_ID_FOR_DEVICE_ID := true
 TW_BRIGHTNESS_PATH := /sys/devices/platform/leds-mt65xx/leds/lcd-backlight/brightness
 TW_MAX_BRIGHTNESS := 255
 TW_CUSTOM_BATTERY_PATH := /sys/devices/platform/battery/power_supply/battery
-TW_BACKUPS_FOLDER := /sdcard/TWRP/BACKUPS/Haier_B85-D_MT6589
+TW_BACKUPS_FOLDER := /sdcard/TWRP/BACKUPS/Haier_B85-B_MT6589
 
 TW_EXCLUDE_SUPERSU := true
 #TW_NO_EXFAT := true
